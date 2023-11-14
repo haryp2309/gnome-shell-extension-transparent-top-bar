@@ -2,8 +2,10 @@ import Meta from 'gi://Meta';
 import St from 'gi://St';
 import GLib from 'gi://GLib';
 
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+
+const colorSchemes = ['light', 'dark'];
 
 export default class TransparentTopBarWithCustomTransparencyExtension extends Extension {
     constructor(metadata) {
@@ -16,7 +18,6 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
     }
 
     enable() {
-
         this._settings = this.getSettings('com.ftpix.transparentbar');
         this._currentTransparency = this._settings.get_int('transparency');
         this._darkFullScreen = this._settings.get_boolean('dark-full-screen');
@@ -47,17 +48,17 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
             global.window_manager.connect('switch-workspace', this._updateTransparentDelayed.bind(this))
         ]);
 
+        St.Settings.get().connect('notify::color-scheme', () => this.themeChanged());
+
         this._updateTransparent();
     }
 
     transparencyChanged(settings, key) {
-
         if (key === 'transparency') {
             GLib.source_remove(this.transparencyChangeDebounce);
             this.transparencyChangeDebounce = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
-                const oldTransparency = this._currentTransparency;
+                this._disableTransparent(this._currentTransparency);
                 this._currentTransparency = this._settings.get_int('transparency');
-                Main.panel.remove_style_class_name('transparent-top-bar-' + oldTransparency);
                 this._updateTransparent();
             });
             return;
@@ -67,7 +68,7 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
             this._darkFullScreen = this._settings.get_boolean('dark-full-screen');
             GLib.source_remove(this.darkFullScreenChangeDebounce);
             this.darkFullScreenChangeDebounce = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
-                Main.panel.remove_style_class_name('transparent-top-bar-' + this._currentTransparency);
+                this._disableTransparent(this._currentTransparency);
                 this._updateTransparent();
             });
             return;
@@ -93,7 +94,8 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
         }
         this._delayedTimeoutId = null;
 
-        this._setTransparent(false);
+        const transparency = this._settings.get_int('transparency');
+        this._disableTransparent(transparency);
         this._settings = null;
     }
 
@@ -122,12 +124,14 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
 
     _updateTransparent() {
         if (!this._darkFullScreen) {
-            this._setTransparent(true);
-            return
+            const transparency = this._settings.get_int('transparency');
+            this._enableTransparent(transparency);
+            return;
         }
 
         if (Main.panel.has_style_pseudo_class('overview') || !Main.sessionMode.hasWindows) {
-            this._setTransparent(true);
+            const transparency = this._settings.get_int('transparency');
+            this._enableTransparent(transparency);
             return;
         }
 
@@ -139,11 +143,13 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
         const workspaceManager = global.workspace_manager;
         const activeWorkspace = workspaceManager.get_active_workspace();
         const windows = activeWorkspace.list_windows().filter(metaWindow => {
-            return metaWindow.is_on_primary_monitor()
-                && metaWindow.showing_on_its_workspace()
-                && !metaWindow.is_hidden()
-                && metaWindow.get_window_type() !== Meta.WindowType.DESKTOP
-                && !metaWindow.skip_taskbar;
+            return (
+                metaWindow.is_on_primary_monitor() &&
+                metaWindow.showing_on_its_workspace() &&
+                !metaWindow.is_hidden() &&
+                metaWindow.get_window_type() !== Meta.WindowType.DESKTOP &&
+                !metaWindow.skip_taskbar
+            );
         });
 
         // Check if at least one window is near enough to the panel.
@@ -155,18 +161,40 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
             return verticalPosition < panelBottom + 5 * scale;
         });
 
-        this._setTransparent(!isNearEnough);
-    }
-
-    _setTransparent(transparent) {
-        const transparency = this._settings.get_int("transparency");
-        if (transparent) {
-            Main.panel.add_style_class_name('transparent-top-bar');
-            Main.panel.add_style_class_name('transparent-top-bar-' + transparency);
+        const transparency = this._settings.get_int('transparency');
+        if (isNearEnough) {
+            this._disableTransparent(transparency);
         } else {
-            Main.panel.remove_style_class_name('transparent-top-bar');
-            Main.panel.remove_style_class_name('transparent-top-bar-' + transparency);
+            this._enableTransparent(transparency);
         }
     }
 
-};
+    themeChanged() {
+        const transparency = this._settings.get_int('transparency');
+        this._disableTransparent(transparency);
+        this._enableTransparent(transparency);
+    }
+
+    getTheme() {
+        if (Main.sessionMode.colorScheme !== 'prefer-light') {
+            return 'dark';
+        }
+        const { colorScheme } = St.Settings.get();
+        return colorScheme === St.SystemColorScheme.PREFER_DARK ? 'dark' : 'light';
+    }
+
+    _enableTransparent(transparency) {
+        const colorScheme = this.getTheme();
+        Main.panel.add_style_class_name('transparent-top-bar');
+        Main.panel.add_style_class_name('transparent-top-bar-' + colorScheme);
+        Main.panel.add_style_class_name('transparent-top-bar-' + colorScheme + '-' + transparency);
+    }
+
+    _disableTransparent(transparency) {
+        for (const colorScheme of colorSchemes) {
+            Main.panel.remove_style_class_name('transparent-top-bar');
+            Main.panel.remove_style_class_name('transparent-top-bar-' + colorScheme);
+            Main.panel.remove_style_class_name('transparent-top-bar-' + colorScheme + '-' + transparency);
+        }
+    }
+}

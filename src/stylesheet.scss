@@ -1,3 +1,46 @@
+$color-schemes: "dark" #000 #eee,
+    "light" #DEDDDA #2A2A2A;
+
+
+@each $color-scheme-name, $bg-color, $text-color in $color-schemes {
+    @for $i from 0 through 100 {
+        $opacity: $i / 100;
+        @debug "Opacity: #{$opacity}";
+
+        #panel.transparent-top-bar-#{$color-scheme-name}-#{$i} {
+            background-color: rgba($bg-color, $opacity);
+            -panel-corner-border-width: 0px;
+            -panel-corner-opacity: $opacity;
+            transition-duration: 500ms;
+            box-shadow: none;
+        }
+
+        #panel.transparent-top-bar-#{$color-scheme-name}-#{$i} .panel-corner {
+            -panel-corner-background-color: rgba(0, 0, 0, $opacity);
+        }
+    }
+
+    #panel.transparent-top-bar-#{$color-scheme-name} .panel-button {
+        color: $text-color;
+        transition-duration: 100ms;
+    }
+
+}
+
+#panel.transparent-top-bar:overview .panel-corner {
+    -panel-corner-opacity: 0;
+    transition-duration: 250ms;
+}
+
+#panel.transparent-top-bar:overview .panel-button {
+    color: #eee;
+}
+
+
+#panel .panel-corner {
+    -panel-corner-border-width: 0px;
+}
+
 #panel.transparent-top-bar {
     transition-duration: 500ms;
 }
@@ -7,56 +50,29 @@
     transition-duration: 250ms;
 }
 
-#panel .panel-corner {
-  -panel-corner-border-width: 0px;
-}
-
-@for $i from 0 through 100 {
-    $opacity: $i / 100;
-    @debug "Opacity: #{$opacity}";
-    #panel.transparent-top-bar-#{$i} {
-        background-color: rgba(0, 0, 0, $opacity);
-        -panel-corner-border-width: 0px;
-        -panel-corner-opacity: $opacity;
-        transition-duration: 500ms;
-        box-shadow:  none;
-    }
-
-    #panel.transparent-top-bar-#{$i} .panel-corner {
-        -panel-corner-background-color: rgba(0, 0, 0, $opacity);
-    }
-}
-
-#panel.transparent-top-bar:overview .panel-corner {
-    -panel-corner-opacity: 0;
-    transition-duration: 250ms;
-}
-
-#panel.transparent-top-bar .panel-button {
-    color: #eee;
+#panel.transparent-top-bar-dark .panel-button {
     text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.9);
-    transition-duration: 100ms;
 }
 
-#panel.transparent-top-bar .system-status-icon,
-#panel.transparent-top-bar .app-menu-icon > StIcon,
-#panel.transparent-top-bar .popup-menu-arrow {
+#panel.transparent-top-bar-dark .system-status-icon,
+#panel.transparent-top-bar-dark .app-menu-icon>StIcon,
+#panel.transparent-top-bar-dark .popup-menu-arrow {
     icon-shadow: 0px 1px 2px rgba(0, 0, 0, 0.9);
 }
 
-#panel.transparent-top-bar:hover {
+#panel.transparent-top-bar-dark:hover {
     text-shadow: 0px 1px 6px black;
 }
 
-#panel.transparent-top-bar:hover .system-status-icon,
-#panel.transparent-top-bar:hover .app-menu-icon > StIcon,
-#panel.transparent-top-bar:hover .popup-menu-arrow {
+#panel.transparent-top-bar-dark:hover .system-status-icon,
+#panel.transparent-top-bar-dark:hover .app-menu-icon>StIcon,
+#panel.transparent-top-bar-dark:hover .popup-menu-arrow {
     icon-shadow: 0px 1px 6px black;
 }
 
-#panel.transparent-top-bar:active .system-status-icon,
 #panel.transparent-top-bar:overview .system-status-icon,
-#panel.transparent-top-bar:focus .system-status-icon,
-#panel.transparent-top-bar:checked .system-status-icon {
+#panel.transparent-top-bar-dark:active .system-status-icon,
+#panel.transparent-top-bar-dark:focus .system-status-icon,
+#panel.transparent-top-bar-dark:checked .system-status-icon {
     icon-shadow: black 0 2px 2px;
 }
