@@ -5,7 +5,10 @@ import GLib from 'gi://GLib';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-const colorSchemes = ['light', 'dark'];
+const config = {
+    extensionId: 'com.ftpix.transparentbar',
+    colorSchemes: ['light', 'dark']
+};
 
 export default class TransparentTopBarWithCustomTransparencyExtension extends Extension {
     constructor(metadata) {
@@ -18,7 +21,7 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
     }
 
     enable() {
-        this._settings = this.getSettings('com.ftpix.transparentbar');
+        this._settings = this.getSettings(config.extensionId);
         this._currentTransparency = this._settings.get_int('transparency');
         this._darkFullScreen = this._settings.get_boolean('dark-full-screen');
 
@@ -48,7 +51,7 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
             global.window_manager.connect('switch-workspace', this._updateTransparentDelayed.bind(this))
         ]);
 
-        St.Settings.get().connect('notify::color-scheme', () => this.themeChanged());
+        St.Settings.get().connect('notify::color-scheme', this.themeChanged.bind(this));
 
         this._updateTransparent();
     }
@@ -172,7 +175,7 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
     themeChanged() {
         const transparency = this._settings.get_int('transparency');
         this._disableTransparent(transparency);
-        this._enableTransparent(transparency);
+        this._updateTransparent();
     }
 
     getTheme() {
@@ -191,7 +194,7 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
     }
 
     _disableTransparent(transparency) {
-        for (const colorScheme of colorSchemes) {
+        for (const colorScheme of config.colorSchemes) {
             Main.panel.remove_style_class_name('transparent-top-bar');
             Main.panel.remove_style_class_name('transparent-top-bar-' + colorScheme);
             Main.panel.remove_style_class_name('transparent-top-bar-' + colorScheme + '-' + transparency);
