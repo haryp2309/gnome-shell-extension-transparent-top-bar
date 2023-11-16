@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
     <schema id="com.ftpix.transparentbar" path="/com/ftpix/transparentbar/">
-        <key type="i" name="transparency">
+        <key type="i" name="transparency-dark">
             <default>35</default>
-            <summary>Top bar opacity</summary>
-            <description>Top bar opacity</description>
+            <summary>Top bar opacity in dark mode</summary>
+            <description>Top bar opacity in dark mode</description>
+        </key>
+        <key type="i" name="transparency-light">
+            <default>35</default>
+            <summary>Top bar opacity in light mode (Gnome 45)</summary>
+            <description>Top bar opacity in light mode (Gnome 45)</description>
         </key>
         <key type="b" name="dark-full-screen">
             <default>true</default>
