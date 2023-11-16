@@ -6,6 +6,7 @@ import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 import { SettingsManager } from "./managers/settingsManager.js";
 import { StylingClassManager } from "./managers/stylingClassManager.js";
+import { ShellEventManager } from "./managers/shellEventManager.js";
 
 const config = {
   extensionId: "com.ftpix.transparentbar",
@@ -25,6 +26,7 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
   enable() {
     this._stylingClassManager = new StylingClassManager();
     this._settings = new SettingsManager(this.getSettings(config.extensionId));
+    this._shellEventManager = new ShellEventManager();
 
     this._actorSignalIds = new Map();
     this._windowSignalIds = new Map();
@@ -38,31 +40,16 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
       Main.sessionMode.connect("updated", this._updateTransparent.bind(this)),
     ]);
 
-    for (const metaWindowActor of global.get_window_actors()) {
-      this._onWindowActorAdded(metaWindowActor.get_parent(), metaWindowActor);
-    }
-
-    this._actorSignalIds.set(global.window_group, [
-      global.window_group.connect(
-        "actor-added",
-        this._onWindowActorAdded.bind(this)
-      ),
-      global.window_group.connect(
-        "actor-removed",
-        this._onWindowActorRemoved.bind(this)
-      ),
-    ]);
+    this._shellEventManager.onWindowPositionChange(
+      this._updateTransparent.bind(this)
+    );
 
     //Use a delayed version of _updateTransparent to let the shell catch up
-    this._actorSignalIds.set(global.window_manager, [
-      global.window_manager.connect(
-        "switch-workspace",
-        this._updateTransparentDelayed.bind(this)
-      ),
-    ]);
+    this._shellEventManager.onWorkspaceSwitch(
+      this._updateTransparentDelayed.bind(this)
+    );
 
-    St.Settings.get().connect(
-      "notify::color-scheme",
+    this._shellEventManager.onColorSchemeChange(
       this._updateTransparent.bind(this)
     );
 
@@ -117,30 +104,9 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
     this._delayedTimeoutId = null;
 
     this._stylingClassManager.disableAll();
+    this._shellEventManager.disconnect();
     this._settings = null;
   }
-
-  _onWindowActorAdded(container, metaWindowActor) {
-    this._windowSignalIds.set(metaWindowActor, [
-      metaWindowActor.connect(
-        "notify::allocation",
-        this._updateTransparent.bind(this)
-      ),
-      metaWindowActor.connect(
-        "notify::visible",
-        this._updateTransparent.bind(this)
-      ),
-    ]);
-  }
-
-  _onWindowActorRemoved(container, metaWindowActor) {
-    for (const signalId of this._windowSignalIds.get(metaWindowActor)) {
-      metaWindowActor.disconnect(signalId);
-    }
-    this._windowSignalIds.delete(metaWindowActor);
-    this._updateTransparent();
-  }
-
   _updateTransparentDelayed() {
     this._delayedTimeoutId = GLib.timeout_add(
       GLib.PRIORITY_DEFAULT,
