@@ -166,9 +166,6 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
     this._stylingClassManager = new StylingClassManager();
     this._settings = new SettingsManager(this.getSettings(config.extensionId));
 
-    this._currentTransparency = this._settings.getTransparencyDark();
-    this._darkFullScreen = this._settings.getDisableOnFullscreen();
-
     this._actorSignalIds = new Map();
     this._windowSignalIds = new Map();
     this._settings.onChange((key) => this.transparencyChanged(key));
@@ -221,24 +218,17 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
       this.transparencyChangeDebounce = GLib.timeout_add(
         GLib.PRIORITY_DEFAULT,
         250,
-        () => {
-          this._currentTransparency =
-            this._settings.getPreviousTransparencyDark();
-          this._updateTransparent();
-        }
+        () => this._updateTransparent()
       );
       return;
     }
 
     if (key === SettingsManager.KEYS.DISABLE_ON_FULLSCREEN) {
-      this._darkFullScreen = this._settings.getDisableOnFullscreen();
       GLib.source_remove(this.darkFullScreenChangeDebounce);
       this.darkFullScreenChangeDebounce = GLib.timeout_add(
         GLib.PRIORITY_DEFAULT,
         250,
-        () => {
-          this._updateTransparent();
-        }
+        () => this._updateTransparent()
       );
       return;
     }
@@ -308,6 +298,8 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
   }
 
   _isAnyWindowNearTopBar() {
+    if (!Main.sessionMode.hasWindows) return false;
+
     // Get all the windows in the active workspace that are in the primary monitor and visible.
     const workspaceManager = global.workspace_manager;
     const activeWorkspace = workspaceManager.get_active_workspace();
@@ -334,37 +326,15 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
   }
 
   _updateTransparent() {
-    if (!this._darkFullScreen) {
-      this._enableTransparent();
-      return;
-    }
+    const disableForMaximizedWindow =
+      this._settings.getDisableOnFullscreen() && this._isAnyWindowNearTopBar();
 
-    if (this._isInOverview() || !Main.sessionMode.hasWindows) {
-      this._enableTransparent();
-      return;
-    }
-
-    if (!Main.layoutManager.primaryMonitor) {
-      return;
-    }
-
-    if (this._isAnyWindowNearTopBar()) {
+    if (this._isInOverview() || disableForMaximizedWindow) {
       this._stylingClassManager.disableAll();
-    } else {
-      this._enableTransparent();
+      return;
     }
-  }
 
-  getTheme() {
-    if (Main.sessionMode.colorScheme !== "prefer-light") {
-      return "dark";
-    }
-    const { colorScheme } = St.Settings.get();
-    return colorScheme === St.SystemColorScheme.PREFER_DARK ? "dark" : "light";
-  }
-
-  _enableTransparent() {
-    const colorScheme = this.getTheme();
+    const colorScheme = this._getTheme();
     const transparency = this._settings.getTransparencyDark();
     this._stylingClassManager.enableBaseClass();
     this._stylingClassManager.enableColorSpecificClass(colorScheme);
@@ -372,5 +342,13 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
       colorScheme,
       transparency
     );
+  }
+
+  _getTheme() {
+    if (Main.sessionMode.colorScheme !== "prefer-light") {
+      return "dark";
+    }
+    const { colorScheme } = St.Settings.get();
+    return colorScheme === St.SystemColorScheme.PREFER_DARK ? "dark" : "light";
   }
 }
