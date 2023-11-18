@@ -18,6 +18,7 @@ $color-schemes: 'dark' #000 #eee, 'light' #deddda #2a2a2a;
 
         #panel.transparent-top-bar-#{$color-scheme-name}-#{$i} {
             background-color: rgba($bg-color, $opacity);
+            box-shadow: none;
         }
 
         #panel.transparent-top-bar-#{$color-scheme-name}-#{$i}:overview {
