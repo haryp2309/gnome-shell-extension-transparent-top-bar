@@ -23,11 +23,9 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
         const settings = this.getSettings(config.extensionId);
         this._settingsManager = new SettingsManager(settings);
         this._shellEventManager = new ShellEventManager();
-
         this._setupListeners();
-
-        this._stylingClassManager.enableBaseClass();
         this._updateTransparent();
+        this._stylingClassManager.enableBaseClass();
     }
 
     disable() {
@@ -57,23 +55,28 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
         this._shellEventManager.onColorSchemeChange(
             this._updateTransparent.bind(this)
         );
+
+        this._shellEventManager.onWindowDestroy(
+            this._updateTransparentDelayed.bind(this)
+        );
     }
 
     _isAnyWindowNearTopBar() {
         if (!Main.sessionMode.hasWindows) return false;
 
         // Get all the windows in the active workspace that are in the primary monitor and visible.
-        const workspaceManager = global.workspace_manager;
-        const activeWorkspace = workspaceManager.get_active_workspace();
-        const windows = activeWorkspace.list_windows().filter(metaWindow => {
-            return (
-                metaWindow.is_on_primary_monitor() &&
-                metaWindow.showing_on_its_workspace() &&
-                !metaWindow.is_hidden() &&
-                metaWindow.get_window_type() !== Meta.WindowType.DESKTOP &&
-                !metaWindow.skip_taskbar
-            );
-        });
+        const windows = global.workspace_manager
+            .get_active_workspace()
+            .list_windows()
+            .filter(metaWindow => {
+                return (
+                    metaWindow.is_on_primary_monitor() &&
+                    metaWindow.showing_on_its_workspace() &&
+                    !metaWindow.is_hidden() &&
+                    metaWindow.get_window_type() !== Meta.WindowType.DESKTOP &&
+                    !metaWindow.skip_taskbar
+                );
+            });
 
         // Check if at least one window is near enough to the panel.
         const panelTop = Main.panel.get_transformed_position()[1];
