@@ -101,7 +101,10 @@ export default class TransparentTopBarWithCustomTransparencyExtension extends Ex
         }
 
         const colorScheme = this._getTheme();
-        const transparency = this._settingsManager.getTransparencyDark();
+        const transparency =
+            colorScheme == 'dark'
+                ? this._settingsManager.getTransparencyDark()
+                : this._settingsManager.getTransparencyLight();
         this._stylingClassManager.enableColoringClass(
             colorScheme,
             transparency
