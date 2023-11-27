@@ -46,7 +46,7 @@ export class ShellEventManager {
         };
 
         for (const metaWindowActor of global.get_window_actors()) {
-            this.handleActorAdded(metaWindowActor);
+            handleActorAdded(metaWindowActor);
         }
 
         this._actorAddedSignal = global.window_group.connect(
