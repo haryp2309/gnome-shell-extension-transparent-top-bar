@@ -10,3 +10,9 @@ build: $(wildcard src/*)
 .PHONY: clean
 clean:
 	rm -rf build/
+
+.PHONY: install
+install:
+	make build
+	distrobox-host-exec gnome-extensions install build/transparent-top-bar@com.ftpix.zip --force
+	MUTTER_DEBUG_DUMMY_MODE_SPECS=1920x1080 distrobox-host-exec dbus-run-session -- gnome-shell --nested --wayland
